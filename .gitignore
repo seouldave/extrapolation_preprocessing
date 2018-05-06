@@ -1,0 +1,6 @@
+src/dev_settings.py
+src/dev_settings.pyc
+
+datain/
+dataout/
+tmp/
