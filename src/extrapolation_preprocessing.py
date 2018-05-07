@@ -36,6 +36,7 @@ from dev_settings import *
 import scipy.stats 
 import shutil
 
+
 class Zonal_stats:
 	"""Class of download, open and analyse rasters and calculate zonal stats"""
 	def __init__(self, iso):
