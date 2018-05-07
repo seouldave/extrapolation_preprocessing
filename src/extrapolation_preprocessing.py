@@ -16,6 +16,14 @@ download_ppp ------------>Download population rasters 2001-2014 -> datain/<iso>/
 calc_stats -------------->Calculate count of urban pixels and population per L1 unit
 concat_dataframes ------->Join all dataframes for each year to 1 long dataframe
 delete_files ------------>Clean system of downloaded data (keep only output tables)
+
+
+<<<<<<<<<<<<<NOTE>>>>>>>>>>>>>>>>>
+from dev_settings import * imports a local file containing credentials or the FTP. This should read:
+
+FTP_url = <WP_FTP_URL>
+FTP_username = <WP_FTP_Username>
+FTP_password = <WP_FTP_Password>
 """
 from osgeo import gdal
 import pandas as pd 
@@ -26,6 +34,7 @@ from collections import Counter
 from ftplib import FTP
 from dev_settings import *
 import scipy.stats 
+import shutil
 
 class Zonal_stats:
 	"""Class of download, open and analyse rasters and calculate zonal stats"""
@@ -48,10 +57,12 @@ class Zonal_stats:
 		None
 		"""
 		datain = 'datain/{0}'.format(iso)
+		dataout = 'dataout/individual_years/{0}'.format(iso)
 		if not os.path.exists(datain):
 			os.makedirs(datain)
 			os.makedirs(os.path.join(datain, "ppp"))
 			os.makedirs(os.path.join(datain, "urban"))
+			os.makedirs(dataout)
 		return datain
 
 	def download_pop_table(self, iso):
@@ -189,7 +200,7 @@ class Zonal_stats:
 		#for year in range(2000, 2015, 1):
 		iso = self.iso
 		for year in [2000, 2012, 2014]:
-			out_fn = 'datain/{0}/{0}_BS_PIX_POP_{1}.csv'.format(iso, year)
+			out_fn = 'dataout/individual_years/{0}/{0}_BS_PIX_POP_{1}.csv'.format(iso, year)
 			urban_pop = 'datain/{0}/ppp/{1}_ppp_wpgp_{2}.tif'.format(iso, iso.lower(), year)
 			adm = self.adm
 			if year == 2000:
@@ -267,7 +278,24 @@ class Zonal_stats:
 			df_counts = pd.DataFrame(stats, columns=['GID', 'BSCNT']).set_index('GID').groupby('GID').sum() #Dataframe of count of urban pixels per admin_id
 			df = pd.concat([df, df_counts.iloc[np.where(df_counts.index != 0)]], axis=1) #Join dataframes ignoring water counts from the L1 raster
 			df['BSCNT'] = np.where(df['BSCNT'].isnull(), 0, df['BSCNT']) #Where no urban pixels in admin unit, these values will be NULL in dataframe -> converted to 0
-			df.to_csv(out_fn)
+			df.insert(1, 'year', value=year)
+			df_pop = self.pop_table[['GID', 'P_{0}'.format(year)]].set_index('GID')
+			df_pop.columns = ['POP']
+			df_joined = pd.concat([df, df_pop], axis=1)
+			df_joined.to_csv(out_fn) #Save indeividual year
+			self.dataframes_to_concat.append(df_joined)
+
+	def concat_dataframes(self, iso):
+		table_name = 'dataout/Extrapolation_PreProcessing/{0}_POP_BSCNT_BSPOP_2000_14.csv'.format(iso)
+		df_final = pd.concat(self.dataframes_to_concat)
+		df_final.to_csv(table_name)
+
+	def delete_files(self, iso):
+		shutil.rmtree('datain/{0}'.format(iso))
+
+
+
+			####TO DO ----------------->>>>>JOINED TABLE FOR EACH YEAR TO LONG TABLE.
 
 
 
