@@ -274,8 +274,10 @@ class Zonal_stats:
 								if i[0] > 0:
 									list_df.append(i)
 
-			df = pd.DataFrame(list_df, columns=['GID', 'BSPOP']).set_index('GID').groupby('GID').sum() #Dataframe of sum of population per admin_id
-			df_counts = pd.DataFrame(stats, columns=['GID', 'BSCNT']).set_index('GID').groupby('GID').sum() #Dataframe of count of urban pixels per admin_id
+			df = pd.DataFrame(list_df, columns=['GID', 'BSPOP']).set_index('GID')
+			df = df.groupby(df.index).sum() #Dataframe of sum of population per admin_id
+			df_counts = pd.DataFrame(stats, columns=['GID', 'BSCNT']).set_index('GID') #Dataframe of count of urban pixels per admin_id
+			df_counts = df_counts.groupby(df_counts.index).sum()
 			df = pd.concat([df, df_counts.iloc[np.where(df_counts.index != 0)]], axis=1) #Join dataframes ignoring water counts from the L1 raster
 			df['BSCNT'] = np.where(df['BSCNT'].isnull(), 0, df['BSCNT']) #Where no urban pixels in admin unit, these values will be NULL in dataframe -> converted to 0
 			df.insert(1, 'year', value=year)
